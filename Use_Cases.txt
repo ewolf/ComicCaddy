@@ -1,0 +1,21 @@
+This describes the use cases for comic caddy.
+
+user follows a comic  : 
+   user submits a comic to follow. 
+   comic caddy checks to see if the comic is known. 
+      if it is not, it ads it
+
+user gets list of comics to read : 
+   comic caddy checks these comics if they have not been recently checked for updates.
+   the comics that have updates are sorted first
+
+user reads a comic : 
+   More specifically, the user clicks on a link to take them to the comic. This counts as a read.
+   The system notes the last comic read.
+
+user bookmarks a comic : 
+   This is when the user is reading the comic archives and wants to hold their place.
+   (implement this later)
+   
+user unfollows a comic
+   comic is removed from users' list.
