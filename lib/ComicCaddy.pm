@@ -6,6 +6,8 @@ package ComicCaddy;
 
 use strict;
 
+use ComicCaddy::Comic;
+
 use Yote::Util::Tag;
 
 use base 'Yote::AppRoot';
@@ -17,12 +19,12 @@ use LWP::UserAgent;
 sub _init {
     my $self = shift;
     $self->set__comic_tags( Yote::Util::Tag->new() );
-    $self->set__comics({});
+    $self->set__comics([]);
 } #_init
 
 sub _init_account {
     my( $self, $acct ) = @_;
-    $acct->set_my_comics({});
+    $acct->set_my_comics([]);
     $acct->set_caddy( $self );
 } #_init_account
 
@@ -55,18 +57,56 @@ sub _check_link {
 } # _check_link
 
 
-# sub _url_to_xpath {
-#     my( $self, $url ) = @_;
-#     $url =~ s!https?://!!;
-#     $url =~ s!/$!!;
+sub new_comic {
+    my( $self, $data, $acct ) = @_;
+    die "Must be logged in to add comic" unless $acct;
+    my $newcomic = new ComicCaddy::Comic( $data );
+    $self->add_to__comics( $newcomic );
+    return $newcomic;
+} #new_comic
 
-#     $url =~ s/\//\\\//g; #convert to use as a single xpath part
-#     return $self->_path_to_root() . "/_comics/$url";
-# } #_url_to_xpath
+sub remove_comic {
+    my( $self, $data, $acct ) = @_;
+    die "Must be logged in to remove comic" unless $acct;
+    $self->remove_from__comics( $data );
+} #remove_comic
 
-sub search {
-    my( $self, $str, 
-} #search
+sub search_list {
+    my( $self, $data, $acct ) = @_;
+    my( $list_name, $search_fields, $search_terms, $amount, $start ) = @$data;
+    # list_name and search fields are already known
+    my %allowed_fields = map { $_ => 1; } ( 'url', 'name', 'description' );
+    $search_fields = $search_fields ? [ grep { $allowed_fields{$_} } @$search_fields ] : [keys %allowed_fields];
+    return Yote::ObjProvider::search_list( $self->{DATA}{ _comics }, $search_fields, $search_terms, $amount || 10, $start );
+} #search_list
+
+sub paginate_list {
+    my( $self, $data, $account ) = @_;
+    
+    my( $list_name, $number, $start ) = @$data;
+    return Yote::ObjProvider::paginate_list( $self->{DATA}{$list_name}, $number, $start );
+
+} #paginate_list
+
+sub is_admin {
+    my( $self, $data, $account ) = @_;
+
+    return $account->get_login()->is_root() || $account->get__is_admin();
+} #is_admin
+
+sub make_admin {
+    my( $self, $data, $account ) = @_;
+    die "Permissions Error" unless $self->is_admin( $account );
+    $data->set__is_admin();
+} #make_admin
+
+
+
+sub count {
+    my( $self, $data, $account ) = @_;
+    return $self->_count( $data );
+} #count
+
 
 #
 # take things apart gru wise with names.
@@ -82,102 +122,3 @@ sub search {
 
 __END__
 
-# sub Search {
-    
-# } #Search
-
-# sub add_link {
-    
-# } #add_link
-
-# sub comic {
-#     my( $self, $url, $acct ) = @_;
-#     return Yote::ObjProvider::xpath( $self->_url_to_xpath( $url ) );
-# } #comic
-
-# sub add_comic {
-#     my( $self, $data, $acct ) = @_;
-    
-#     if( ref( $data ) ne 'HASH' ) {
-# 	die "add_comic takes a hash as an argument";
-#     }
-#     if( ! $data->{url} ) {
-# 	die "url needed for add_comic";
-#     }
-
-#     my $xpath = $self->_url_to_xpath( $data->{url} );
-
-#     if( Yote::ObjProvider::xpath_count( $xpath ) ) {
-# 	return "Comic already submitted";
-#     }
-
-#     my $md5 = $self->_link_md5( $hash_url );
-#     if( ! $md5 ) {
-# 	die "Unable to find link";
-#     }
-
-#     my $comic = new Yote::Obj( $data );
-
-#     Yote::ObjProvider::xpath_insert( $xpath, $comic );
-
-#     $comic->set_added_by( $acct );
-#     $comic->set_added_on( time() );
-#     $comic->set_last_updated( time() );
-#     $comic->set_md5( $md5 );
-
-#     $self->follow_comic( $comic, $acct );
-    
-#     return $comic;
-# } #add_comic
-
-# sub is_following_comic {
-#     my( $self, $data, $acct ) = @_;
-#     my $comics = $acct->get_my_comics({});
-#     return ref( $comics->{ $data->{ID} } );
-# } #is_following_comic
-
-# # ---------- methods that deal with the account directly ------------
-
-# sub read_comic {
-#     my( $self, $data, $acct ) = @_;
-#     my $node = $self->get_my_comics({})->{ $data->{ID} };
-#     if( $node ) {
-# 	$node->set_last_seen( time() );
-# 	$node->set_last_md5( $node->get_comic()->get_last_md5() );
-#     }
-# } #read_comic
-
-# sub remove_comic {
-#     my( $self, $data, $acct ) = @_;
-#     my $comic = $data;
-#     my $comics = $acct->get_my_comics({});
-#     delete $comics->{ $comic->{ID} };
-# } #remove_comic
-
-# sub follow_comic {
-#     my( $self, $data, $acct ) = @_;
-#     my $root_path = $acct->_path_to_root();
-#     if( 0 == Yote::ObjProvider::xpath_count( "$root_path/_my_comics/$data->{ID}" ) ) {
-# 	my $comic_node = new Yote::Obj( { comic => $data, followed_on => time(), last_read => 0 } );
-# 	$comic_node->set_last_seen( time() );
-# 	my $md5 = $comic_node->get_comic()->get_last_md5();
-# 	$comic_node->set_last_md5( $md5 );
-# 	Yote::ObjProvider::xpath_insert( "$root_path/_my_comics/$data->{ID}", $comic_node );
-#     }
-# } #follow_comic
-
-# sub my_comic_nodes {
-#     my( $self, $data, $acct ) = @_;
-#     my $comics = $acct->get_my_comics({});
-#     for my $comic_node (values %$comics) {
-# 	my $comic = $comic_node->get_comic();
-# 	# if the comic had not been updated in last 24 hours, give a check
-# 	if( time() - $comic->set_last_updated() > 24 * 3600 ) {
-# 	    # move this to a cron eventually though
-# 	    $comic->set_md5( $self->_link_md5( $comic->get_url() ) );
-# 	    $comic->set_last_updated( time() );
-# 	}
-# 	$comic_node->set_has_update( $comic_node->get_last_md5() ne $comic->get_last_md5() );
-#     }
-#     return [values %$comics];
-# } #my_comic_nodes

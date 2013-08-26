@@ -13,7 +13,13 @@
     <link href="/css/main.css" rel="stylesheet" type="text/css" media="all" />
 
     <STYLE>
-//    div { border: black solid 1px
+      ._ct_title { font-size:big; color: darkblue }
+      ._ct_description { color: darkgreen }
+      ._ct_table { padding: 15px; border: solid brown 4px }
+      ._ct_header { background-color:rgba(100,100,1000.3); border: solid purple 2px; padding:5px; }
+      ._ct_row { border: solid orange 2px }
+      ._ct_cell { background-color:rgba(100,100,100,0.1); border: solid orange 2px }
+      .comixin { border: solid black 3px }
     </STYLE>
     <script>
     $().ready(function(){
@@ -21,214 +27,104 @@
         $.yote.init();
 
         var cc_app = $.yote.fetch_app( 'ComicCaddy' );
+//$.yote.fetch_root().purge_app( 'ComicCaddy' );
 	var root   = $.yote.fetch_root();
 
 //	root.purge_app( 'ComicCaddy' );
-/*
-	function display_comic( comic, target, node ) {
 
-	    var container_array = 		    
-		[
-		    [ [ 'Comic', 'span2' ], [ '<span>' + comic.get_name() + '</span>', 'span10' ] ],
-		    [ [ 'Url', 'span2' ], [ '<span><a id="url_a_' + comic.id + '" href="#">' + comic.get_url() + '</a></span>', 'span10' ] ],
-		    [ [ '<label for=last_updated_span_' + comic.id + '>Last Updated</label><span id=last_updated_span>' +
-			new Date( 1000 * comic.get_last_updated() ).toDateString()
-			+ '</span>', 'span3' ] ]
-		];
-	    if( node ) {
-		container_array.push( [ [ '<label for=last_viewed_span_' + comic.id + '>Last Viewed</label><span id=last_viewed_span>' + new Date( 1000 * node.get_last_seen() ).toDateString() + '</span>', 'span3' ] ] );
-	    }
-	    container_array.push( [ [ '<label for=added_on_span_' + comic.id + '>Added On</label><span id=added_on_span>' + new Date( 1000 * comic.get_added_on() ).toDateString() + '</span>', 'span3' ] ] );
-	    container_array.push( [ [ $.yote.util.make_button( 'follow_' + comic.id, 'Follow' ) + $.yote.util.make_button( 'stop_following_' + comic.id, 'Stop Following' ), 'span12' ] ] );
-
-	    var cd_id = 'comic_div_' + comic.id;
-	    
-	    if( $( cd_id ).val() ) {
-		$( cd_id ).empty().append( $.yote.util.container_div( container_array, { div_id : cd_id } ) );
-	    } 
-	    else {
-		$( target ).append( $.yote.util.container_div( container_array, { div_id : cd_id }
-		) );
-	    }
-	    if( cc_app.is_following_comic( comic ) ) {
-		$( '#follow_' + comic.id ).hide();
-		$( '#stop_following_' + comic.id ).show();
-	    } else {
-		$( '#follow_' + comic.id ).show();
-		$( '#stop_following_' + comic.id ).hide();
-		$( '#last_viewed_span_' + comic.id ).hide();
-	    }
-	    (function( c ) {
-		$( '#url_a_' + c.id ).click( function() {
-		    cc_app.read_comic( c );
-		    window.open( c.get_url(), '_blank' );
-		} );
-		$( '#stop_following_' + c.id ).click( function() {
-		    cc_app.remove_comic( c );
-		    $( '#follow_' + c.id ).show();
-		    $( '#stop_following_' + c.id ).hide();
-		} );
-		$( '#follow_' + c.id ).click( function() {
-		    cc_app.add_comic( c );
-		    $( '#follow_' + c.id ).hide();
-		    $( '#stop_following_' + c.id ).show();
-		} );
-	    })( comic );
-	    
-	} //display_comic
-
-	function enter_comic( comic_url ) {
-	    $.yote.util.prep_modal_div( '#modal_div', 'modal_main_div' );
-	    $( '#modal_main_div' ).empty().append( $.yote.util.container_div(
-		[
-		    [ [ 'Comic Name', 'span2' ], [ $.yote.util.make_text( 'comic_name_t' ), 'span3' ] ],
-		    [ [ 'Url', 'span2' ], [ $.yote.util.make_text( 'comic_url_t', { value : comic_url } ), 'span3' ] ],
-		    [ [ 'Description', 'span2' ], [ $.yote.util.make_text( 'comic_description_t' ), 'span3' ] ],
-		    [ [ 'Tags', 'span2' ], [ $.yote.util.make_text( 'comic_tags_t' ), 'span3' ] ],
-		    [ [ $.yote.util.make_button( 'enter_comic_b', 'Add Comic' ), 'span12' ] ]
-		]
-	    ) );
-	    $.yote.util.button_actions( {
-		button : '#enter_comic_b',
-		texts : [ '#comic_name_t', '#comic_url_t', '#comic_description_t', '#comic_tags_t' ],
-		on_escape:function() {
-		    $( '#modal_div' ).modal( 'toggle' );
-		},
-		action:function(){
-		    var comic = cc_app.add_comic( {
-			name : $( '#comic_name_t' ).val(),
-			url  : $( '#comic_url_t' ).val(),
-			description : $( '#comic_description_t' ).val(),
-			tags : $( '#comic_tags_t' ).val()
-		    } );
-		    display_comic( comic, '#comic_div' );
-		    $( '#modal_div' ).modal( 'toggle' );
-		}
-	    } );
-	    $( '#modal_div' ).on( 'shown', function() { 
-		$( '#comic_name_t' ).focus();				
-	    } );
-	    $( '#modal_div' ).modal();
-	} //enter_comic
-
-	function show_comics( my_login, start_page ) { //start_page for pagination
-	    if( ! start_page ) start_page = 0;
-	    var comics_per_page = 10;
-	    var comic_nodes = cc_app.my_comic_nodes();
-	    $( '#main_panel_div' ).empty();
-	    if( comic_nodes.length() == 0 ) {
-		//no comics
-		$( '#main_panel_div' ).append( "No Comics<BR>" );
-	    }
-
-	    //  *********** ADD/FIND NEW COMIC *************
-	    var comics_arry = [
-		[ [ 'Find a comic by url', 'span2' ],
-		  [ $.yote.util.make_text( 'find_comic_t' ), 'span3' ],
-		  [ $.yote.util.make_button( 'find_comic_b', 'Find' ), 'span3' ] ]
-	    ];
-
-	    $( '#main_panel_div' ).append( $.yote.util.container_div( comics_arry ) );
-
-
-	    $( '#main_panel_div' ).append( $.yote.util.container_div( [
-		[ [ '<div id=comic_div></div>', 'span12' ] ]
-	    ] ) );
-
-	    function check_comic() {
-		var comic = cc_app.comic( $( '#find_comic_t' ).val() );
-		if( comic ) {
-		    display_comic( comic, '#comic_div' );
-		}
-		else {  //not a known comic
-		    enter_comic( $( '#find_comic_t' ).val() );
-		}
-	    }
-
-	    $.yote.util.button_actions( {
-		action : function() {
-		    var comic = cc_app.comic( $( '#find_comic_t' ).val() );
-		    if( comic ) {
-			display_comic( comic, '#comic_div' );
-		    }
-		    else {  //not a known comic
-			enter_comic( $( '#find_comic_t' ).val() );
-		    }
-		},
-		texts : [ '#find_comic_t' ],
-		button : '#find_comic_b'
-	    } );
-
-	    // ********** ADD EXISTING COMICS
-	    //   sort here? those with updates appear first
-	    // array.sort( function( a, b ) { return < if a goes first then return more than zero. if b goes first, then return a negative number
-	    var sorted_nodes = comic_nodes.sort( function( a, b ) {
-		if( a.has_update() && ! b.has_update() ) {
-		    return 1;
-		}
-		else if( b.has_update() && ! a.has_update() ) {
-		    return -1;
-		}
-		else { //then the last updated goes next
-		    return a.get_comic().get_last_updated() - b.get_comic().get_last_updated();
-		}
-	    } );
-	    for( var i=0; i < sorted_nodes.length; i++ ) {
-		display_comic( sorted_nodes[ i ].get_comic(), '#comic_div', sorted_nodes[ i ] );	
-	    } //each comic
-
-	} //show_comics
-*/
 	function show_comics() {
-	    var acct = $.yote.fetch_account();
-	    control_table( {
-		item        : acct,
-		list_name   : 'my_comics',
-		attachpoint : '#main_panel_div',
-		remove_function : function( item ) {
-		    cc_app.unfollow( item );
-		},
-		column_headers : [ 'Name', 'Url' ],
-		columns        : [ 'name', 'url'
+	    if( $.yote.is_logged_in() ) {
+		var acct = $.yote.fetch_account();
+		$.yote.util.control_table( {
+		    title       : 'Comics I follow',
+		    item        : acct,
+		    list_name   : 'my_comics',
+		    attachpoint : '#my_comics_panel',
+		    remove_function : function( item ) {
+			cc_app.unfollow( item );
+		    },
+		    column_headers : [ 'Name', 'Url' ],
+		    columns        : [ 'name', 'url' ],
+		    plimit  : 10,
+		    show_when_empty : function(terms) {
+			$( '#my_comics_panel' ).empty().append( "You are not following any comics" );
+		    }
+		} );
+	    }
+	    var ct = $.yote.util.control_table( {
 
-		],
-		plimit  : 10
+		// data
+		item      : cc_app,
+		list_name : '_comics',
+		plimit : 10,
+		search_on : [ 'url', 'name', 'description' ],
+
+		// content
+		attachpoint : '#comics_panel',
+		title       : 'Comics in the system',
+		column_headers : [ 'Name', 'Url', 'Description' ],
+		columns : [ 'name', 'url', 'description' ],
+
+		// adding stuff
+		new_attachpoint : '#add_comic_panel',
+		new_title : 'Add comic to the caddy',
+		new_description : 'Got a comic that you think we should track? Add it to the system',
+		new_column_titles : [ 'Name', 'Url', 'Description' ],
+		new_columns : [ 'name', 'url', 'description' ],
+		new_function : function( data ) {
+		    return cc_app.new_comic( data );
+		},
+		after_new_function : function( item ) {
+		    ct.clear_search();
+		},		
+
+		// removing stuff
+		remove_function : function( item ) {
+		    cc_app.remove_comic( item );
+		},
+
+
+		// styles
+		prefix_classname : 'comixin',
+		table_extra  : 'style="border:solid 2px"',
+		header_extra : 'style="background-color:rgba(100,100,100,0.3)"',
+		header_row_extra    : 'style="background-color:rgba(100,100,100,0.3)"',
+		row_extra    : 'style="background-color:rgba(100,100,100,0.3)"',
+		cell_extra : 'style="background-color:rgba(100,100,100,0.1)"',
+
+		after_render : function( list_of_items ) {
+		    //hide the new comic unless a searched for comic isn't found.
+		    
+		    $( '#add_comic_panel' ).hide();
+		},
+
+		after_render_when_empty : function( search_terms ) {
+		    if( $.yote.is_logged_in() ) {
+			$( '#add_comic_panel' ).show();
+		    }
+		},
+
+		// extra
+		show_when_empty : function(terms) {
+		    if( terms.length > 0 ) {
+			return "No results for the search '" + terms.join( ' ' ) + "'";
+		    }
+		    else {
+			return "There are no comics defined at all. Perhaps you could add some.";
+		    }
+		}
 	    } );
+
 	} //show_comics
 
-	function search_comic_panel() {
-	    var buf = '<INPUT TYPE="text" id="search" placeholder="Comic"> <BUTTON type="BUTTON" id="go_srch">Search</BUTTON>';
-	    
-	    $( '#new_comic_panel' ).empty().append( buf );
-
-	    var srch = function() {
-		//var ret = cc_app.search( $( '#search' ).val() );
-	    }
-
-	    $.yote.util.button_actions( {
-		button : '#go_srch',
-		action : srch,
-		texts : [ '#search' ]
-	    } );
-
-	    var timeout = undefined;
-
-	    $( '#search' ).keyup( function() {
-		if( typeof timeout !== 'undefined' ) {
-		    clearInterval( timeout );		    
-		} 
-		timeout = setTimeout( srch, 600 );
-	    } );
-	    
-	} //search_comic_panel
 
 	attach_login( {
 	    attachpoint         : '#logged_in_status',
 	    message_attachpoint : '#msg_div',
-	    after_login         : show_comics
+	    after_login         : function() { alert(1);show_comics() }
 	} );
-	
-	search_comic_panel();
+
+	show_comics();
 
     } );
     </SCRIPT>
@@ -245,10 +141,10 @@
     <DIV id="main_div" class="main_div">
     Keep track of the comics you read.
       <DIV id="main_panel_div" class="main_div">
+        <DIV id="my_comics_panel"></DIV>
         <DIV id="comics_panel"></DIV>
-        <DIV id="new_comic_panel"></DIV>
+        <DIV id="add_comic_panel"></DIV>
       </DIV>
     </DIV>
-    <script src="/js/local.js"></script>
   </BODY>
 </html>

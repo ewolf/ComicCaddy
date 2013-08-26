@@ -19,3 +19,16 @@ user bookmarks a comic :
    
 user unfollows a comic
    comic is removed from users' list.
+
+
+_________________________________
+
+  Go to page.  
+    Not logged in ?   See most followed comics of anyone and include search.
+    Logged in ?  See your comics and below your comics, the most followed sans any followed by you.
+                 Include a search panel to add new comics
+
+  Search for a comic panel.
+
+
+  For popular comics, maybe have a staging area that approves them before they are shown on the main page.
